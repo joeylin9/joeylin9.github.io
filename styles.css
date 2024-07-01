@@ -127,8 +127,7 @@
     /* Title of position */
     h3 {
         font-size: 12pt;
-        padding: 0 20pt;
-        padding-bottom: 5pt;
+        padding: 5pt 20pt;
         font-weight: lighter;
     }
 

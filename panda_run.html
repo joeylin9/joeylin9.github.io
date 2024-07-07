@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panda Run</title>
+    <script src="//cdn.jsdelivr.net/npm/phaser@3.11.0/dist/phaser.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+<script type="text/javascript">
+var config={
+    type: Phaser.AUTO,
+    width: 1200,
+    height: 700,
+    physics: {
+        default: 'arcade',
+        arcade: {
+            gravity: { y: 1200 },
+            debug: false
+        }
+    },
+    scene: {
+        preload: preload,
+        create: create,
+        update: update
+    }
+};
+
+var game = new Phaser.Game(config);
+var platforms;
+var panda;
+var bambooObstacle;
+var bambooSpeed = -300;
+var bugObstacle;
+var bugSpeed = -500;
+var cursors;
+var score = 0;
+var scoreText;
+var endText;
+var health = 100;
+var healthText;
+var jumping = false;
+var jump = 0;
+var pandaDead;
+var coolDown = true;
+
+document.addEventListener('keydown', function(event) {
+      if (event.code === 'KeyR'){
+        location.reload()
+      }
+    });
+
+function preload()
+{
+    this.load.image('background', 'assets/background.png');
+    this.load.image('ground', 'assets/ground.png');
+    this.load.image('panda', 'assets/panda.png');
+    this.load.image('panda_jump', 'assets/panda_jump.png');
+    this.load.image('panda_dead', 'assets/panda_dead.png');
+    this.load.image('bamboo', 'assets/bamboo.png');
+    this.load.image('bug1', 'assets/bug1.png');
+    this.load.image('bug2', 'assets/bug2.png');
+    this.load.image('cloud', 'assets/cloud.png');
+}
+
+function create()
+{
+    gameOver = false
+
+    this.add.image(400, 300, 'background');
+
+    clouds = this.physics.add.group({
+        key: 'cloud',
+        repeat: 3,
+        setXY: {x: Math.random()*1000, y: Math.random()*200, stepX:1200}
+    })
+    clouds.children.iterate(function (child) {
+        child.setVelocityX(bambooSpeed);
+        child.body.allowGravity = false;
+    });
+
+    platform = this.physics.add.staticGroup();
+    platform.create(600, 650, 'ground').setScale(2).refreshBody();
+
+    bambooObstacle = this.physics.add.group({
+        key: 'bamboo',
+        repeat: 3,
+        setXY: { x: 1200, y: 550, stepX: 3600}
+    });
+    bambooObstacle.children.iterate(function (child) {
+        child.setVelocityX(bambooSpeed);
+        child.body.allowGravity = false;
+    });
+
+    this.anims.create({
+        key: 'bugAnim',
+        frames: [
+            { key: 'bug1' },
+            { key: 'bug2' }
+        ],
+        frameRate: 4,
+        repeat: -1
+    });
+
+    bugObstacle = this.physics.add.group({
+        key: 'bug1',
+        repeat: 2,
+        setXY: { x: 12000, y: Math.random()*500, stepX: 18000}
+    });
+    bugObstacle.children.iterate(function (child) {
+        child.play('bugAnim');
+        child.setVelocityX(bugSpeed);
+        child.body.allowGravity = false;
+    });
+
+    panda = this.physics.add.sprite(100, 450, 'panda');
+    panda.setCollideWorldBounds(true);
+
+    this.physics.add.collider(panda, platform);
+    this.physics.add.overlap(panda, bambooObstacle, hitObstacle, null, this);
+    this.physics.add.overlap(panda, bugObstacle, hitObstacle, null, this);
+
+    cursors = this.input.keyboard.createCursorKeys();
+
+    scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '24px', fill: '#000' });
+    setInterval(scoreIncrease, 10);
+    setInterval(obstacleSpeedIncrease, 10);
+
+    healthText = this.add.text(1000, 16, 'Health = 3', { fontSize: '24px', fill: '#000' });
+}
+
+function update()
+{
+    if (cursors.left.isDown)
+    {
+        panda.setVelocityX(-600);
+    }
+    else if (cursors.right.isDown)
+    {
+        panda.setVelocityX(600);
+    }
+    else
+    {
+        panda.setVelocityX(0);
+    }
+
+    if (cursors.down.isDown)
+    {
+        panda.setVelocityY(1000);
+    }
+
+    if (cursors.up.isDown && jump < 1 && coolDown){
+        jump += 1
+        panda.setVelocityY(-750);
+        coolDown = false
+        setTimeout(jumpCoolDown, 300)
+    }
+
+    if (panda.body.blocked.down)
+    {
+        jump = 0
+        jumping = false;
+    }
+    else{
+        jumping = true;
+    }
+
+    if (jumping && !gameOver){
+        panda.setTexture('panda_jump');
+    }else if (!jumping && !gameOver){
+        panda.setTexture('panda');
+    }
+
+    clouds.children.iterate(function (child) {
+        if (child.x < -child.width) {
+            child.x = 1200 + Math.random()*1000
+            child.y = Math.random()*200
+        }
+    });
+
+    bambooObstacle.children.iterate(function (child) {
+        if (child.x < -child.width) {
+            child.x = 1200 + Math.random()*1000
+        }
+    });
+
+    bugObstacle.children.iterate(function (child) {
+        if (child.x < -child.width) {
+            child.x = 1200 + Math.random()*1000
+            child.y = Math.random()*400
+        }
+    });
+
+    scoreText.setText('Score: ' + score);
+    healthText.setText('Health: ' + health);
+
+    clouds.children.iterate(function (child) {
+        child.setVelocityX(bambooSpeed);
+    });
+
+    bambooObstacle.children.iterate(function (child) {
+        child.setVelocityX(bambooSpeed);
+    });
+
+    bugObstacle.children.iterate(function (child) {
+        child.setVelocityX(bugSpeed);
+    });
+}
+
+function hitObstacle()
+{
+    if (health != 0){
+        health -= 2;
+        panda.setTint(0xff0000);
+        hitTimer = panda.scene.time.addEvent({
+            delay: 10,
+            callback: () => {
+                panda.clearTint();
+    }})
+    }else{
+        gameOver = true;
+        gameOverAnimation.call(this)
+        hitTimer = panda.scene.time.addEvent({
+            delay: 2000,
+            callback: () => {
+                this.physics.pause()
+                endText = this.add.text(520, 120, 'Press R to restart', {font: '14pt Comic Sans MS', fill: '#000'})
+    }})
+    }
+}
+
+function scoreIncrease()
+{
+    if (gameOver == false){
+        score+=1
+    }
+}
+
+function obstacleSpeedIncrease()
+{
+    bambooSpeed -= .1
+    bugSpeed -= .1
+}
+
+function gameOverAnimation() {
+    pandaDead = this.physics.add.sprite(panda.x, panda.y-200, 'panda_dead');
+    pandaDead.setCollideWorldBounds(true);
+    this.physics.add.collider(pandaDead, platform, pandaDeadColor, null, this);
+    pandaDead.setBounce(0.5);
+    panda.disableBody(true, true);
+
+    bambooSpeed = 0;
+    bugSpeed = 0;
+
+    endText = this.add.text(510, 75, 'Game Over !', {font: '24pt Comic Sans MS', fill: '#000'});
+}
+
+function pandaDeadColor(){
+    if (pandaDead.body.blocked.down){
+        pandaDead.setTint(0xff0000);
+    }
+}
+
+function jumpCoolDown(){
+    coolDown = true
+}
+</script>
+</body>
+</html>

@@ -156,6 +156,10 @@
         font-size: 28pt;
         padding: 10pt 20pt;
     }
+
+    a{
+        padding: 0 50pt;
+    }
 }
 
 /* NAVBAR */

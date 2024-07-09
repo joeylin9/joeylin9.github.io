@@ -14,14 +14,18 @@
 </head>
 <body>
 <script type="text/javascript">
+
+const width = window.innerWidth;
+const height = window.innerHeight;
+
 var config={
     type: Phaser.AUTO,
-    width: 1200,
-    height: 700,
+    width: width,
+    height: height,
     physics: {
         default: 'arcade',
         arcade: {
-            gravity: { y: 1200 },
+            gravity: { y: height*2 },
             debug: false
         }
     },
@@ -35,26 +39,25 @@ var config={
 var game = new Phaser.Game(config);
 var platforms;
 var panda;
+var pandaDead;
 var bambooObstacle;
 var bambooSpeed = -300;
 var bugObstacle;
 var bugSpeed = -500;
-var cursors;
 var score = 0;
 var scoreText;
-var endText;
 var health = 100;
 var healthText;
 var jumping = false;
 var jump = 0;
-var pandaDead;
 var coolDown = true;
+var cursors;
 
 document.addEventListener('keydown', function(event) {
       if (event.code === 'KeyR'){
-        location.reload()
+        location.reload();
       }
-    });
+});
 
 function preload()
 {
@@ -73,7 +76,7 @@ function create()
 {
     gameOver = false
 
-    this.add.image(400, 300, 'background');
+    this.add.image(width/2, height/2, 'background');
 
     clouds = this.physics.add.group({
         key: 'cloud',
@@ -86,12 +89,12 @@ function create()
     });
 
     platform = this.physics.add.staticGroup();
-    platform.create(600, 650, 'ground').setScale(2).refreshBody();
+    platform.create(width/2, height, 'ground').setScale(4).refreshBody();
 
     bambooObstacle = this.physics.add.group({
         key: 'bamboo',
         repeat: 3,
-        setXY: { x: 1200, y: 550, stepX: 3600}
+        setXY: { x: width, y: height*.8, stepX: width*3}
     });
     bambooObstacle.children.iterate(function (child) {
         child.setVelocityX(bambooSpeed);
@@ -110,8 +113,8 @@ function create()
 
     bugObstacle = this.physics.add.group({
         key: 'bug1',
-        repeat: 2,
-        setXY: { x: 12000, y: Math.random()*500, stepX: 18000}
+        repeat: 1,
+        setXY: { x: width*5, y: Math.random()*(height/2), stepX: width*2}
     });
     bugObstacle.children.iterate(function (child) {
         child.play('bugAnim');
@@ -119,7 +122,7 @@ function create()
         child.body.allowGravity = false;
     });
 
-    panda = this.physics.add.sprite(100, 450, 'panda');
+    panda = this.physics.add.sprite(100, height/2, 'panda');
     panda.setCollideWorldBounds(true);
 
     this.physics.add.collider(panda, platform);
@@ -132,7 +135,7 @@ function create()
     setInterval(scoreIncrease, 10);
     setInterval(obstacleSpeedIncrease, 10);
 
-    healthText = this.add.text(1000, 16, 'Health = 3', { fontSize: '24px', fill: '#000' });
+    healthText = this.add.text(width-180, 16, 'Health = 3', { fontSize: '24px', fill: '#000' });
 }
 
 function update()
@@ -152,12 +155,12 @@ function update()
 
     if (cursors.down.isDown)
     {
-        panda.setVelocityY(1000);
+        panda.setVelocityY(height*1.1);
     }
 
     if (cursors.up.isDown && jump < 1 && coolDown){
         jump += 1
-        panda.setVelocityY(-750);
+        panda.setVelocityY(-height*1.1);
         coolDown = false
         setTimeout(jumpCoolDown, 300)
     }
@@ -179,21 +182,22 @@ function update()
 
     clouds.children.iterate(function (child) {
         if (child.x < -child.width) {
-            child.x = 1200 + Math.random()*1000
-            child.y = Math.random()*200
+            child.x = width + Math.random()*width
+            child.y = Math.random()*(height*.5)
         }
     });
 
     bambooObstacle.children.iterate(function (child) {
         if (child.x < -child.width) {
-            child.x = 1200 + Math.random()*1000
+            child.x = width + Math.random()*width
+            child.y = height*.75 + Math.random()*50
         }
     });
 
     bugObstacle.children.iterate(function (child) {
         if (child.x < -child.width) {
-            child.x = 1200 + Math.random()*1000
-            child.y = Math.random()*400
+            child.x = width + Math.random()*(width*2)
+            child.y = Math.random()*(height*.8)
         }
     });
 
@@ -230,7 +234,7 @@ function hitObstacle()
             delay: 2000,
             callback: () => {
                 this.physics.pause()
-                endText = this.add.text(520, 120, 'Press R to restart', {font: '14pt Comic Sans MS', fill: '#000'})
+                this.add.text(width/2, 120, 'Press R to restart', {font: '14pt Comic Sans MS', fill: '#000'}).setOrigin(0.5);
     }})
     }
 }
@@ -258,7 +262,7 @@ function gameOverAnimation() {
     bambooSpeed = 0;
     bugSpeed = 0;
 
-    endText = this.add.text(510, 75, 'Game Over !', {font: '24pt Comic Sans MS', fill: '#000'});
+    this.add.text(width/2, 75, 'Game Over !', {font: '24pt Comic Sans MS', fill: '#000'}).setOrigin(0.5);
 }
 
 function pandaDeadColor(){

@@ -14,6 +14,7 @@
 </head>
 <body>
 <script type="text/javascript">
+window.onload = restoreHighscore;
 
 const width = window.innerWidth;
 const height = window.innerHeight;
@@ -52,12 +53,8 @@ var jumping = false;
 var jump = 0;
 var coolDown = true;
 var cursors;
-
-document.addEventListener('keydown', function(event) {
-      if (event.code === 'KeyR'){
-        location.reload();
-      }
-});
+var restartText;
+var highscore;
 
 function preload()
 {
@@ -74,6 +71,12 @@ function preload()
 
 function create()
 {
+    document.addEventListener('keydown', (event) => {
+    if (event.code === 'KeyR') {
+        location.reload();
+    }
+    });
+
     gameOver = false
 
     this.add.image(width/2, height/2, 'background');
@@ -89,12 +92,12 @@ function create()
     });
 
     platform = this.physics.add.staticGroup();
-    platform.create(width/2, height, 'ground').setScale(4).refreshBody();
+    platform.create(width/2, height*.95, 'ground').setScale(4).refreshBody();
 
     bambooObstacle = this.physics.add.group({
         key: 'bamboo',
         repeat: 3,
-        setXY: { x: width, y: height*.8, stepX: width*3}
+        setXY: { x: width, y: height*.75, stepX: width*3}
     });
     bambooObstacle.children.iterate(function (child) {
         child.setVelocityX(bambooSpeed);
@@ -155,7 +158,7 @@ function update()
 
     if (cursors.down.isDown)
     {
-        panda.setVelocityY(height*1.1);
+        panda.setVelocityY(height*1.5);
     }
 
     if (cursors.up.isDown && jump < 1 && coolDown){
@@ -182,7 +185,7 @@ function update()
 
     clouds.children.iterate(function (child) {
         if (child.x < -child.width) {
-            child.x = width + Math.random()*width
+            child.x = width + Math.random()*width + 100
             child.y = Math.random()*(height*.5)
         }
     });
@@ -190,7 +193,7 @@ function update()
     bambooObstacle.children.iterate(function (child) {
         if (child.x < -child.width) {
             child.x = width + Math.random()*width
-            child.y = height*.75 + Math.random()*50
+            child.y = height*.75 + Math.random()*33
         }
     });
 
@@ -229,12 +232,12 @@ function hitObstacle()
     }})
     }else{
         gameOver = true;
-        gameOverAnimation.call(this)
+        gameOverAnimation.call(this);
         hitTimer = panda.scene.time.addEvent({
             delay: 2000,
             callback: () => {
-                this.physics.pause()
-                this.add.text(width/2, 120, 'Press R to restart', {font: '14pt Comic Sans MS', fill: '#000'}).setOrigin(0.5);
+                this.physics.pause();
+                restartTextShow.call(this);
     }})
     }
 }
@@ -242,14 +245,14 @@ function hitObstacle()
 function scoreIncrease()
 {
     if (gameOver == false){
-        score+=1
+        score+=1;
     }
 }
 
 function obstacleSpeedIncrease()
 {
-    bambooSpeed -= .1
-    bugSpeed -= .1
+    bambooSpeed -= .1;
+    bugSpeed -= .1;
 }
 
 function gameOverAnimation() {
@@ -261,8 +264,23 @@ function gameOverAnimation() {
 
     bambooSpeed = 0;
     bugSpeed = 0;
+    calculateHighscore(score);
 
-    this.add.text(width/2, 75, 'Game Over !', {font: '24pt Comic Sans MS', fill: '#000'}).setOrigin(0.5);
+    this.add.text(width/2, height*.22, 'Game Over !', {font: '36pt Comic Sans MS', fill: '#000'}).setOrigin(0.5);
+    highscoreText = 'Highscore: ' + highscore;
+    this.add.text(width/2, height*.22 + height*.075, highscoreText, {font: '18pt Comic Sans MS', fill: '#000'}).setOrigin(0.5);
+}
+
+function restartTextShow() {
+    restartText = this.add.text(width/2, height*.22 + height*.18, 'Press R to restart', {font: '14pt Comic Sans MS', fill: '#000'});
+    restartText.setOrigin(0.5);
+    this.time.addEvent({
+            delay: 500,
+            callback: () => {
+                restartText.visible = !restartText.visible;
+            },
+            loop: true
+    });
 }
 
 function pandaDeadColor(){
@@ -272,8 +290,24 @@ function pandaDeadColor(){
 }
 
 function jumpCoolDown(){
-    coolDown = true
+    coolDown = true;
 }
+
+function calculateHighscore(score){
+    if(highscore === undefined) {
+        highscore = score;
+    }else if(score > highscore){
+        highscore = score;
+    }
+    localStorage.setItem('highscore', highscore);
+}
+
+function restoreHighscore() {
+    if (localStorage.getItem('highscore') !== null) {
+        highscore = localStorage.getItem('highscore');
+    }
+}
+
 </script>
 </body>
 </html>

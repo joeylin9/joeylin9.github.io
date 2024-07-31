@@ -234,7 +234,7 @@
     position: relative;
     width: 800px;
     height: 250px;
-    background-image: url("/projects/panda_run/assets/panda_scene.png");
+    background-image: url("images/panda_scene.png");
     background-size: cover;
     background-position: center;
     box-sizing: border-box;

@@ -35,7 +35,7 @@
     display: flex;
     justify-content: flex-end;
     font-size: 16pt;
-    font-family: 'Calibri';
+    font-family: 'Calibri', 'Arial', sans-serif;
     padding: 50px;
 }
 

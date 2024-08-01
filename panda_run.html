@@ -10,304 +10,334 @@
             margin: 0;
             overflow: hidden;
         }
+        #start-box {
+            position: absolute;
+            width: 50%;
+            height: 40%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.8);
+            border: 2px solid #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            font-size: 24px;
+            padding: 20px;
+        }
     </style>
 </head>
 <body>
-<script type="text/javascript">
-window.onload = restoreHighscore;
+    <div id="start-box">
+        <p>Welcome to Panda Run!</p>
+        <p>Use all four arrow keys to move the panda</p>
+        <p>Press space to start!</p>
+    </div>
+    <script type="text/javascript">
+        window.onload = () => {
+            document.addEventListener('keydown', startGame);
+            restoreHighscore();
+        };
 
-const width = window.innerWidth;
-const height = window.innerHeight;
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        let gameStarted = false;
 
-var config={
-    type: Phaser.AUTO,
-    width: width,
-    height: height,
-    physics: {
-        default: 'arcade',
-        arcade: {
-            gravity: { y: height*2 },
-            debug: false
-        }
-    },
-    scene: {
-        preload: preload,
-        create: create,
-        update: update
-    }
-};
-
-var game = new Phaser.Game(config);
-var platforms;
-var panda;
-var pandaDead;
-var bambooObstacle;
-var bambooSpeed = -300;
-var bugObstacle;
-var bugSpeed = -500;
-var score = 0;
-var scoreText;
-var health = 100;
-var healthText;
-var jumping = false;
-var jump = 0;
-var coolDown = true;
-var cursors;
-var restartText;
-var highscore;
-
-function preload()
-{
-    this.load.image('background', 'assets/background.png');
-    this.load.image('ground', 'assets/ground.png');
-    this.load.image('panda', 'assets/panda.png');
-    this.load.image('panda_jump', 'assets/panda_jump.png');
-    this.load.image('panda_dead', 'assets/panda_dead.png');
-    this.load.image('bamboo', 'assets/bamboo.png');
-    this.load.image('bug1', 'assets/bug1.png');
-    this.load.image('bug2', 'assets/bug2.png');
-    this.load.image('cloud', 'assets/cloud.png');
-}
-
-function create()
-{
-    document.addEventListener('keydown', (event) => {
-    if (event.code === 'KeyR') {
-        location.reload();
-    }
-    });
-
-    gameOver = false
-
-    this.add.image(width/2, height/2, 'background');
-
-    clouds = this.physics.add.group({
-        key: 'cloud',
-        repeat: 3,
-        setXY: {x: Math.random()*1000, y: Math.random()*200, stepX:1200}
-    })
-    clouds.children.iterate(function (child) {
-        child.setVelocityX(bambooSpeed);
-        child.body.allowGravity = false;
-    });
-
-    platform = this.physics.add.staticGroup();
-    platform.create(width/2, height*.95, 'ground').setScale(4).refreshBody();
-
-    bambooObstacle = this.physics.add.group({
-        key: 'bamboo',
-        repeat: 3,
-        setXY: { x: width, y: height*.75, stepX: width*3}
-    });
-    bambooObstacle.children.iterate(function (child) {
-        child.setVelocityX(bambooSpeed);
-        child.body.allowGravity = false;
-    });
-
-    this.anims.create({
-        key: 'bugAnim',
-        frames: [
-            { key: 'bug1' },
-            { key: 'bug2' }
-        ],
-        frameRate: 4,
-        repeat: -1
-    });
-
-    bugObstacle = this.physics.add.group({
-        key: 'bug1',
-        repeat: 1,
-        setXY: { x: width*5, y: Math.random()*(height/2), stepX: width*2}
-    });
-    bugObstacle.children.iterate(function (child) {
-        child.play('bugAnim');
-        child.setVelocityX(bugSpeed);
-        child.body.allowGravity = false;
-    });
-
-    panda = this.physics.add.sprite(100, height/2, 'panda');
-    panda.setCollideWorldBounds(true);
-
-    this.physics.add.collider(panda, platform);
-    this.physics.add.overlap(panda, bambooObstacle, hitObstacle, null, this);
-    this.physics.add.overlap(panda, bugObstacle, hitObstacle, null, this);
-
-    cursors = this.input.keyboard.createCursorKeys();
-
-    scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '24px', fill: '#000' });
-    setInterval(scoreIncrease, 10);
-    setInterval(obstacleSpeedIncrease, 10);
-
-    healthText = this.add.text(width-180, 16, 'Health = 3', { fontSize: '24px', fill: '#000' });
-}
-
-function update()
-{
-    if (cursors.left.isDown)
-    {
-        panda.setVelocityX(-600);
-    }
-    else if (cursors.right.isDown)
-    {
-        panda.setVelocityX(600);
-    }
-    else
-    {
-        panda.setVelocityX(0);
-    }
-
-    if (cursors.down.isDown)
-    {
-        panda.setVelocityY(height*1.5);
-    }
-
-    if (cursors.up.isDown && jump < 1 && coolDown){
-        jump += 1
-        panda.setVelocityY(-height*1.1);
-        coolDown = false
-        setTimeout(jumpCoolDown, 300)
-    }
-
-    if (panda.body.blocked.down)
-    {
-        jump = 0
-        jumping = false;
-    }
-    else{
-        jumping = true;
-    }
-
-    if (jumping && !gameOver){
-        panda.setTexture('panda_jump');
-    }else if (!jumping && !gameOver){
-        panda.setTexture('panda');
-    }
-
-    clouds.children.iterate(function (child) {
-        if (child.x < -child.width) {
-            child.x = width + Math.random()*width + 100
-            child.y = Math.random()*(height*.5)
-        }
-    });
-
-    bambooObstacle.children.iterate(function (child) {
-        if (child.x < -child.width) {
-            child.x = width + Math.random()*width
-            child.y = height*.75 + Math.random()*33
-        }
-    });
-
-    bugObstacle.children.iterate(function (child) {
-        if (child.x < -child.width) {
-            child.x = width + Math.random()*(width*2)
-            child.y = Math.random()*(height*.8)
-        }
-    });
-
-    scoreText.setText('Score: ' + score);
-    healthText.setText('Health: ' + health);
-
-    clouds.children.iterate(function (child) {
-        child.setVelocityX(bambooSpeed);
-    });
-
-    bambooObstacle.children.iterate(function (child) {
-        child.setVelocityX(bambooSpeed);
-    });
-
-    bugObstacle.children.iterate(function (child) {
-        child.setVelocityX(bugSpeed);
-    });
-}
-
-function hitObstacle()
-{
-    if (health != 0){
-        health -= 2;
-        panda.setTint(0xff0000);
-        hitTimer = panda.scene.time.addEvent({
-            delay: 10,
-            callback: () => {
-                panda.clearTint();
-    }})
-    }else{
-        gameOver = true;
-        gameOverAnimation.call(this);
-        hitTimer = panda.scene.time.addEvent({
-            delay: 2000,
-            callback: () => {
-                this.physics.pause();
-                restartTextShow.call(this);
-    }})
-    }
-}
-
-function scoreIncrease()
-{
-    if (gameOver == false){
-        score+=1;
-    }
-}
-
-function obstacleSpeedIncrease()
-{
-    bambooSpeed -= .1;
-    bugSpeed -= .1;
-}
-
-function gameOverAnimation() {
-    pandaDead = this.physics.add.sprite(panda.x, panda.y-200, 'panda_dead');
-    pandaDead.setCollideWorldBounds(true);
-    this.physics.add.collider(pandaDead, platform, pandaDeadColor, null, this);
-    pandaDead.setBounce(0.5);
-    panda.disableBody(true, true);
-
-    bambooSpeed = 0;
-    bugSpeed = 0;
-    calculateHighscore(score);
-
-    this.add.text(width/2, height*.22, 'Game Over !', {font: '36pt Comic Sans MS', fill: '#000'}).setOrigin(0.5);
-    highscoreText = 'Highscore: ' + highscore;
-    this.add.text(width/2, height*.22 + height*.075, highscoreText, {font: '18pt Comic Sans MS', fill: '#000'}).setOrigin(0.5);
-}
-
-function restartTextShow() {
-    restartText = this.add.text(width/2, height*.22 + height*.18, 'Press R to restart', {font: '14pt Comic Sans MS', fill: '#000'});
-    restartText.setOrigin(0.5);
-    this.time.addEvent({
-            delay: 500,
-            callback: () => {
-                restartText.visible = !restartText.visible;
+        var config = {
+            type: Phaser.AUTO,
+            width: width,
+            height: height,
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    gravity: { y: height * 2 },
+                    debug: false
+                }
             },
-            loop: true
-    });
-}
+            scene: {
+                preload: preload,
+                create: create,
+                update: update
+            }
+        };
 
-function pandaDeadColor(){
-    if (pandaDead.body.blocked.down){
-        pandaDead.setTint(0xff0000);
-    }
-}
+        var game = new Phaser.Game(config);
+        var platforms;
+        var panda;
+        var pandaDead;
+        var bambooObstacle;
+        var bambooSpeed = -300;
+        var bugObstacle;
+        var bugSpeed = -500;
+        var score = 0;
+        var scoreText;
+        var health = 100;
+        var healthText;
+        var jumping = false;
+        var jump = 0;
+        var coolDown = true;
+        var cursors;
+        var restartText;
+        var highscore;
+        var inGameHighscoreText;
 
-function jumpCoolDown(){
-    coolDown = true;
-}
+        function preload() {
+            this.load.image('background', 'assets/background.png');
+            this.load.image('ground', 'assets/ground.png');
+            this.load.image('panda', 'assets/panda.png');
+            this.load.image('panda_jump', 'assets/panda_jump.png');
+            this.load.image('panda_dead', 'assets/panda_dead.png');
+            this.load.image('bamboo', 'assets/bamboo.png');
+            this.load.image('bug1', 'assets/bug1.png');
+            this.load.image('bug2', 'assets/bug2.png');
+            this.load.image('cloud', 'assets/cloud.png');
+        }
 
-function calculateHighscore(score){
-    if(highscore === undefined) {
-        highscore = score;
-    }else if(score > highscore){
-        highscore = score;
-    }
-    localStorage.setItem('highscore', highscore);
-}
+        function create() {
+            document.addEventListener('keydown', (event) => {
+                if (event.code === 'KeyR') {
+                    location.reload();
+                }
+            });
 
-function restoreHighscore() {
-    if (localStorage.getItem('highscore') !== null) {
-        highscore = localStorage.getItem('highscore');
-    }
-}
+            gameOver = false;
 
-</script>
+            this.add.image(width / 2, height / 2, 'background');
+
+            clouds = this.physics.add.group({
+                key: 'cloud',
+                repeat: 3,
+                setXY: { x: Math.random() * 1000, y: Math.random() * 200, stepX: 1200 }
+            })
+            clouds.children.iterate(function (child) {
+                child.setVelocityX(bambooSpeed);
+                child.body.allowGravity = false;
+            });
+
+            platform = this.physics.add.staticGroup();
+            platform.create(width / 2, height * .95, 'ground').setScale(4).refreshBody();
+
+            bambooObstacle = this.physics.add.group({
+                key: 'bamboo',
+                repeat: 3,
+                setXY: { x: width, y: height * .75, stepX: width * 3 }
+            });
+            bambooObstacle.children.iterate(function (child) {
+                child.setVelocityX(bambooSpeed);
+                child.body.allowGravity = false;
+            });
+
+            this.anims.create({
+                key: 'bugAnim',
+                frames: [
+                    { key: 'bug1' },
+                    { key: 'bug2' }
+                ],
+                frameRate: 4,
+                repeat: -1
+            });
+
+            bugObstacle = this.physics.add.group({
+                key: 'bug1',
+                repeat: 1,
+                setXY: { x: width * 5, y: Math.random() * (height / 2), stepX: width * 2 }
+            });
+            bugObstacle.children.iterate(function (child) {
+                child.play('bugAnim');
+                child.setVelocityX(bugSpeed);
+                child.body.allowGravity = false;
+            });
+
+            panda = this.physics.add.sprite(100, height / 2, 'panda');
+            panda.setCollideWorldBounds(true);
+
+            this.physics.add.collider(panda, platform);
+            this.physics.add.overlap(panda, bambooObstacle, hitObstacle, null, this);
+            this.physics.add.overlap(panda, bugObstacle, hitObstacle, null, this);
+
+            cursors = this.input.keyboard.createCursorKeys();
+
+            scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '24px', fill: '#000' });
+            highscoreText = 'Highscore: ' + highscore;
+            inGameHighscoreText = this.add.text(16, 50, highscoreText, { fontSize: '24px', fill: '#000' });
+            setInterval(scoreIncrease, 10);
+            setInterval(obstacleSpeedIncrease, 10);
+
+            healthText = this.add.text(width - 180, 16, 'Health = 3', { fontSize: '24px', fill: '#000' });
+
+            this.physics.pause();
+        }
+
+        function update() {
+            if (gameStarted) {
+                if (cursors.left.isDown) {
+                    panda.setVelocityX(-600);
+                } else if (cursors.right.isDown) {
+                    panda.setVelocityX(600);
+                } else {
+                    panda.setVelocityX(0);
+                }
+
+                if (cursors.down.isDown) {
+                    panda.setVelocityY(height * 1.5);
+                }
+
+                if (cursors.up.isDown && jump < 1 && coolDown) {
+                    jump += 1;
+                    panda.setVelocityY(-height * 1.1);
+                    coolDown = false;
+                    setTimeout(jumpCoolDown, 300);
+                }
+
+                if (panda.body.blocked.down) {
+                    jump = 0;
+                    jumping = false;
+                } else {
+                    jumping = true;
+                }
+
+                if (jumping && !gameOver) {
+                    panda.setTexture('panda_jump');
+                } else if (!jumping && !gameOver) {
+                    panda.setTexture('panda');
+                }
+
+                clouds.children.iterate(function (child) {
+                    if (child.x < -child.width) {
+                        child.x = width + Math.random() * width + 100;
+                        child.y = Math.random() * (height * .5);
+                    }
+                });
+
+                bambooObstacle.children.iterate(function (child) {
+                    if (child.x < -child.width) {
+                        child.x = width + Math.random() * width;
+                        child.y = height * .75 + Math.random() * 33;
+                    }
+                });
+
+                bugObstacle.children.iterate(function (child) {
+                    if (child.x < -child.width) {
+                        child.x = width + Math.random() * (width * 2);
+                        child.y = Math.random() * (height * .8);
+                    }
+                });
+
+                scoreText.setText('Score: ' + score);
+                healthText.setText('Health: ' + health);
+                inGameHighscoreText.setText(highscoreText);
+
+                clouds.children.iterate(function (child) {
+                    child.setVelocityX(bambooSpeed);
+                });
+
+                bambooObstacle.children.iterate(function (child) {
+                    child.setVelocityX(bambooSpeed);
+                });
+
+                bugObstacle.children.iterate(function (child) {
+                    child.setVelocityX(bugSpeed);
+                });
+            }
+        }
+
+        function hitObstacle() {
+            if (health != 0) {
+                health -= 2;
+                panda.setTint(0xff0000);
+                hitTimer = panda.scene.time.addEvent({
+                    delay: 10,
+                    callback: () => {
+                        panda.clearTint();
+                    }
+                })
+            } else {
+                gameOver = true;
+                gameOverAnimation.call(this);
+                hitTimer = panda.scene.time.addEvent({
+                    delay: 2000,
+                    callback: () => {
+                        this.physics.pause();
+                        restartTextShow.call(this);
+                    }
+                })
+            }
+        }
+
+        function scoreIncrease() {
+            if (gameOver == false) {
+                score += 1;
+            }
+        }
+
+        function obstacleSpeedIncrease() {
+            bambooSpeed -= .1;
+            bugSpeed -= .1;
+        }
+
+        function gameOverAnimation() {
+            pandaDead = this.physics.add.sprite(panda.x, panda.y - 200, 'panda_dead');
+            pandaDead.setCollideWorldBounds(true);
+            this.physics.add.collider(pandaDead, platform, pandaDeadColor, null, this);
+            pandaDead.setBounce(0.5);
+            panda.disableBody(true, true);
+
+            bambooSpeed = 0;
+            bugSpeed = 0;
+            calculateHighscore(score);
+
+            this.add.text(width / 2, height * .22, 'Game Over !', { font: '36pt Comic Sans MS', fill: '#000' }).setOrigin(0.5);
+            highscoreText = 'Highscore: ' + highscore;
+            this.add.text(width / 2, height * .22 + height * .075, highscoreText, { font: '18pt Comic Sans MS', fill: '#000' }).setOrigin(0.5);
+        }
+
+        function restartTextShow() {
+            restartText = this.add.text(width / 2, height * .22 + height * .18, 'Press R to restart', { font: '14pt Comic Sans MS', fill: '#000' });
+            restartText.setOrigin(0.5);
+            this.time.addEvent({
+                delay: 500,
+                callback: () => {
+                    restartText.visible = !restartText.visible;
+                },
+                loop: true
+            });
+        }
+
+        function pandaDeadColor() {
+            if (pandaDead.body.blocked.down) {
+                pandaDead.setTint(0xff0000);
+            }
+        }
+
+        function jumpCoolDown() {
+            coolDown = true;
+        }
+
+        function calculateHighscore(score) {
+            if (highscore === undefined) {
+                highscore = score;
+            } else if (score > highscore) {
+                highscore = score;
+            }
+            localStorage.setItem('highscore', highscore);
+        }
+
+        function restoreHighscore() {
+            if (localStorage.getItem('highscore') !== null) {
+                highscore = localStorage.getItem('highscore');
+            }
+        }
+
+        function startGame(event) {
+            if (event.code === 'Space') {
+                gameStarted = true;
+                document.getElementById('start-box').style.display = 'none';
+                game.scene.scenes[0].physics.resume();
+                document.removeEventListener('keydown', startGame);
+            }
+        }
+    </script>
 </body>
 </html>

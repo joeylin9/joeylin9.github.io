@@ -159,13 +159,13 @@
 
             cursors = this.input.keyboard.createCursorKeys();
 
-            scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '24px', fill: '#000' });
+            scoreText = this.add.text(16, 16, 'Score: 0', { fontSize: '24px', fill: '#000' });
             highscoreText = 'Highscore: ' + highscore;
             inGameHighscoreText = this.add.text(16, 50, highscoreText, { fontSize: '24px', fill: '#000' });
             setInterval(scoreIncrease, 10);
             setInterval(obstacleSpeedIncrease, 10);
 
-            healthText = this.add.text(width - 180, 16, 'Health = 3', { fontSize: '24px', fill: '#000' });
+            healthText = this.add.text(width - 180, 16, 'Health = 100', { fontSize: '24px', fill: '#000' });
 
             this.physics.pause();
         }
